@@ -43,7 +43,14 @@ export default function App() {
     setSelectedFriend((curr) => (curr?.id === friend.id ? null : friend));
     setShowAddFriend(false)
   }
- 
+  function handleSiplitBill(value) {
+    setFriends(friends => friends.map(friend => friend.id === selectedFriend.id ? {
+      ...friend, balance: friend.balance + value
+    } : friend));
+
+    setSelectedFriend(null);
+  }
+
   return <div className="app">
     <div className="sidebar">
       <FriendsList
@@ -55,8 +62,11 @@ export default function App() {
       <Button onClick={handleShowAddFriend}>{showAddFriend ? "close" : " Add Friend"}</Button>
 
     </div>
-    {selectedFriend && <FormSplitBill selectedFriend={selectedFriend} />}
-    
+    {selectedFriend && <FormSplitBill
+      selectedFriend={selectedFriend}
+      onSplitBill={handleSiplitBill}
+    />}
+
   </div>
 }
 
@@ -74,14 +84,14 @@ function FriendsList({ friends, onSelection, selectedFriend }) {
 
 function Friend({ friend, onSelection, selectedFriend }) {
   const isSelected = selectedFriend?.id === friend.id;
-  
+
   return (
     <li className={isSelected ? "selected" : ""}>
-    <img src={friend.image} alt={friend.name}></img>
-    <h3>{friend.name}</h3>
-    {friend.balance < 0 && (<p className="red">You owe {friend.name} {Math.abs(friend.balance)}$ </p>)}
-    {friend.balance > 0 && (<p className="green">{friend.name} owes you {Math.abs(friend.balance)}$ </p>)}
-    {friend.balance === 0 && (<p className="silver">You and {friend.name} are even! </p>)}
+      <img src={friend.image} alt={friend.name}></img>
+      <h3>{friend.name}</h3>
+      {friend.balance < 0 && (<p className="red">You owe {friend.name} {Math.abs(friend.balance)}$ </p>)}
+      {friend.balance > 0 && (<p className="green">{friend.name} owes you {Math.abs(friend.balance)}$ </p>)}
+      {friend.balance === 0 && (<p className="silver">You and {friend.name} are even! </p>)}
       <Button onClick={() => onSelection(friend)} > {isSelected ? "Close" : "Select"} </Button>
     </li>
   )
@@ -121,25 +131,44 @@ function FormAddFriend({ onAddFriend }) {
   </form>
 }
 
-function FormSplitBill({ selectedFriend }) {
-  return <form className="form-split-bill">
-    <h2>Split a bill with {selectedFriend.name}</h2>
-    <label>Bill value $</label>
-    <input type="text"></input>
+function FormSplitBill({ selectedFriend, onSplitBill }) {
+  const [bill, setBill] = useState("");
+  const [paidByUser, setpaidByUser] = useState("");
+  const paidByFriend = bill ? bill - paidByUser : "";
+  const [whoIsPaying, setwhoIsPaying] = useState("user");
 
-    <label>Your expense $</label>
-    <input type="text"></input>
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (!bill || !paidByUser) return;
+    onSplitBill(whoIsPaying === "user" ? paidByFriend : -paidByUser);
+  }
 
-    <label>{selectedFriend.name}'s expense $</label>
-    <input type="text" disabled></input>
+  return (
+    <form className="form-split-bill" onSubmit={handleSubmit}>
+      <h2>Split a bill with {selectedFriend.name}</h2>
+      <label>Bill value $</label>
+      <input type="text"
+        value={bill}
+        onChange={(e) => { setBill(Number(e.target.value)) }} ></input>
 
-    <label>Who is paying the bill </label>
-    <select>
-      <option value="user" >You</option>
-      <option value="friend" >{selectedFriend.name}</option>
-    </select>
+      <label>Your expense $</label>
+      <input type="text"
+        value={paidByUser}
+        onChange={(e) => { setpaidByUser(Number(e.target.value) > bill ? paidByUser : Number(e.target.value)) }}
+      ></input>
 
-    <Button>Split Bill</Button>
+      <label>{selectedFriend.name}'s expense $</label>
+      <input type="text" disabled value={paidByFriend}></input>
 
-  </form>
+      <label>Who is paying the bill </label>
+      <select value={whoIsPaying}
+        onChange={(e) => { setwhoIsPaying(Number(e.target.value)) }}>
+        <option value="user" >You</option>
+        <option value="friend" >{selectedFriend.name}</option>
+      </select>
+
+      <Button>Split Bill</Button>
+
+    </form>
+  )
 }
